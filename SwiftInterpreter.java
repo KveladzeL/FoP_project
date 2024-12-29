@@ -2,7 +2,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class SwiftInterpreter {
-    private final Map<String, Integer> variables = new HashMap<>(); // Variable storage
+    private final Map<String, Value> variables = new HashMap<>(); // Variable storage
 
     public void eval(String code) {
         String[] lines = code.split(";"); // Split by statement terminator
@@ -26,47 +26,64 @@ public class SwiftInterpreter {
         String varName = parts[0].trim();
         String expression = parts[1].trim();
 
-        // Parse and evaluate the expression
-        int value = evaluateExpression(expression);
+        if (expression.startsWith("\"") && expression.endsWith("\"")) {
+            // It's a String
+            String stringValue = expression.substring(1, expression.length() - 1); // Strip quotes
+            variables.put(varName, new StringValue(stringValue));
+        } else {
+            // If it's a number or expression, evaluate it
+        Value value = evaluateExpression(expression); 
+        variables.put(varName, value); // Store the evaluated value;
+        }
 
-        // Store the result in the variables map
-        variables.put(varName, value);
     }
 
-    private int evaluateExpression(String expression) {
+    private Value evaluateExpression(String expression) {
+        // Remove spaces
+        expression = expression.replaceAll("\\s+", "");
+    
         // Handle basic arithmetic operations (+, -, *, /, %)
         String[] operators = { "\\+", "-", "\\*", "/", "%" };
-
+    
         for (String operator : operators) {
+            // Split by operator
             String[] operands = expression.split(operator);
+            // Check if valid split into two operands
             if (operands.length == 2) {
                 int left = Integer.parseInt(operands[0].trim());
                 int right = Integer.parseInt(operands[1].trim());
                 switch (operator) {
                     case "\\+" -> {
-                        return left + right;
+                        return new IntValue(left + right); // Return an IntValue object
                     }
                     case "-" -> {
-                        return left - right;
+                        return new IntValue(left - right); // Return an IntValue object
                     }
                     case "\\*" -> {
-                        return left * right;
+                        return new IntValue(left * right); // Return an IntValue object
                     }
                     case "/" -> {
-                        return left / right;
+                        return new IntValue(left / right); // Return an IntValue object
                     }
                     case "%" -> {
-                        return left % right;
+                        return new IntValue(left % right); // Return an IntValue object
                     }
                 }
             }
         }
-        return Integer.parseInt(expression); // If no operator, return the number itself
+    
+        // If no operator, assume it's a direct integer value
+        return new IntValue(Integer.parseInt(expression)); // Return an IntValue object
     }
-
+    
     private void handlePrint(String line) {
         String varName = line.substring(line.indexOf('(') + 1, line.indexOf(')')).trim();
-        System.out.println(variables.get(varName));
+        Value value = variables.get(varName);
+        if (value instanceof IntValue) {
+            System.out.println(((IntValue) value).getValue());
+        } else if (value instanceof StringValue) {
+            System.out.println(((StringValue) value).getValue());
+        }
     }
 
     public static void main(String[] args) {
@@ -76,8 +93,10 @@ public class SwiftInterpreter {
         String program = """
             sum = 10 + 20;
             product = 4 * 5;
+            message = "Hello World";
             print(sum);
             print(product);
+            print(message);
         """;
 
         interpreter.eval(program);
