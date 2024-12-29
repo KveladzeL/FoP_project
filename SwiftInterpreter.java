@@ -24,7 +24,7 @@ public class SwiftInterpreter {
             }
             // Handle If-Else Statements
             else if (line.startsWith("if")) {
-                handleIfElse(lines, i);
+                i = handleIfElse(lines, i);
             }
         }
     }
@@ -39,26 +39,27 @@ public class SwiftInterpreter {
         int value = evaluateExpression(expression);
         variables.put(varName, value); // Store the evaluated value
     }
+
     private int evaluateExpression(String expression) {
         // Remove spaces for ease of parsing
         expression = expression.replaceAll("\\s+", "");
-    
+
         // First, check if the expression is a variable
         if (variables.containsKey(expression)) {
             return variables.get(expression); // Return the value of the variable
         }
-    
+
         // Check for each operator in the order of precedence
         String[] operators = {"\\+", "-", "\\*", "/", "%"};
         for (String operator : operators) {
             // Split by the operator
             String[] operands = expression.split(operator);
-    
+
             // If the split results in exactly two operands, evaluate the expression
             if (operands.length == 2) {
                 int left = evaluateExpression(operands[0].trim()); // Recursively evaluate left operand
                 int right = evaluateExpression(operands[1].trim()); // Recursively evaluate right operand
-    
+
                 switch (operator) {
                     case "\\+" -> {
                         return left + right;
@@ -78,7 +79,7 @@ public class SwiftInterpreter {
                 }
             }
         }
-    
+
         // If no operators were found, treat it as a direct integer
         try {
             return Integer.parseInt(expression); // If it's an integer, parse it
@@ -86,7 +87,6 @@ public class SwiftInterpreter {
             throw new RuntimeException("Invalid expression: " + expression);
         }
     }
-    
 
     private void handlePrint(String line) {
         // Extract the variable name from the print statement: print(sum)
@@ -148,26 +148,27 @@ public class SwiftInterpreter {
         }
         throw new RuntimeException("Invalid condition: " + condition);
     }
-    private void handleIfElse(String[] lines, int currentIndex) {
+
+    private int handleIfElse(String[] lines, int currentIndex) {
         String conditionLine = lines[currentIndex].trim();
         String condition = conditionLine.substring(conditionLine.indexOf('(') + 1, conditionLine.indexOf(')')).trim();
-        
+
         boolean conditionResult = evaluateCondition(condition);
-        
+
         // Find the block of code for the if-else statement
         int startBlockIndex = currentIndex + 1;
         int endBlockIndex = startBlockIndex;
-        
+
         // Find the start and end of the if block (if enclosed by braces)
         while (endBlockIndex < lines.length && !lines[endBlockIndex].trim().equals("}")) {
             endBlockIndex++;
         }
-        
+
         // Check if the block is valid
         if (endBlockIndex >= lines.length) {
             throw new RuntimeException("Missing closing brace for if block");
         }
-        
+
         // Execute the block based on the condition
         if (conditionResult) {
             // Execute the block of code under the 'if' part
@@ -180,29 +181,36 @@ public class SwiftInterpreter {
             if (elseBlockStart < lines.length && lines[elseBlockStart].trim().startsWith("else")) {
                 int elseStartBlockIndex = elseBlockStart + 1;
                 int elseEndBlockIndex = elseStartBlockIndex;
-                
+
                 // Find the end of the else block
                 while (elseEndBlockIndex < lines.length && !lines[elseEndBlockIndex].trim().equals("}")) {
                     elseEndBlockIndex++;
                 }
-                
+
                 // Execute the block of code under the 'else' part
                 for (int i = elseStartBlockIndex; i < elseEndBlockIndex; i++) {
                     eval(lines[i]);
                 }
+
+                return elseEndBlockIndex; // Return the index after the else block
             }
         }
+
+        return endBlockIndex; // Return the index after the closing brace of the if block
     }
-    
+
     public static void main(String[] args) {
         SwiftInterpreter interpreter = new SwiftInterpreter();
-        
-        // Example program with while loop
+
+        // Example program with if-else
         String program = """
-            let b = 10
-            let a = 20
-            let sum = a + b
-            print (sum)
+           let number = 10
+           if (number > 0) {
+               print(number)
+           }
+           else {
+               print(number)
+           }
         """;
 
         interpreter.eval(program);
