@@ -204,13 +204,10 @@ public class SwiftInterpreter {
 
         // Example program with if-else
         String program = """
-           let number = 10
-           if (number > 0) {
-               print(number)
-           }
-           else {
-               print(number)
-           }
+        let b = 10
+            let a = 20
+            let sum = a + b
+            print (sum)
         """;
 
         interpreter.eval(program);
