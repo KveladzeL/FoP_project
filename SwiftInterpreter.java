@@ -22,6 +22,10 @@ public class SwiftInterpreter {
             else if (line.startsWith("while")) {
                 i = handleWhile(lines, i);
             }
+            // Handle If-Else Statements
+            else if (line.startsWith("if")) {
+                handleIfElse(lines, i);
+            }
         }
     }
 
@@ -144,19 +148,61 @@ public class SwiftInterpreter {
         }
         throw new RuntimeException("Invalid condition: " + condition);
     }
-
+    private void handleIfElse(String[] lines, int currentIndex) {
+        String conditionLine = lines[currentIndex].trim();
+        String condition = conditionLine.substring(conditionLine.indexOf('(') + 1, conditionLine.indexOf(')')).trim();
+        
+        boolean conditionResult = evaluateCondition(condition);
+        
+        // Find the block of code for the if-else statement
+        int startBlockIndex = currentIndex + 1;
+        int endBlockIndex = startBlockIndex;
+        
+        // Find the start and end of the if block (if enclosed by braces)
+        while (endBlockIndex < lines.length && !lines[endBlockIndex].trim().equals("}")) {
+            endBlockIndex++;
+        }
+        
+        // Check if the block is valid
+        if (endBlockIndex >= lines.length) {
+            throw new RuntimeException("Missing closing brace for if block");
+        }
+        
+        // Execute the block based on the condition
+        if (conditionResult) {
+            // Execute the block of code under the 'if' part
+            for (int i = startBlockIndex; i < endBlockIndex; i++) {
+                eval(lines[i]);
+            }
+        } else {
+            // Check for 'else' part after the 'if' block
+            int elseBlockStart = endBlockIndex + 1;
+            if (elseBlockStart < lines.length && lines[elseBlockStart].trim().startsWith("else")) {
+                int elseStartBlockIndex = elseBlockStart + 1;
+                int elseEndBlockIndex = elseStartBlockIndex;
+                
+                // Find the end of the else block
+                while (elseEndBlockIndex < lines.length && !lines[elseEndBlockIndex].trim().equals("}")) {
+                    elseEndBlockIndex++;
+                }
+                
+                // Execute the block of code under the 'else' part
+                for (int i = elseStartBlockIndex; i < elseEndBlockIndex; i++) {
+                    eval(lines[i]);
+                }
+            }
+        }
+    }
+    
     public static void main(String[] args) {
         SwiftInterpreter interpreter = new SwiftInterpreter();
         
         // Example program with while loop
         String program = """
-            let sum = 1
-            let i = 6
-            while (i > 0) {
-                let sum = sum * i
-                let i = i - 1
-            }
-            print(sum)
+            let b = 10
+            let a = 20
+            let sum = a + b
+            print (sum)
         """;
 
         interpreter.eval(program);
