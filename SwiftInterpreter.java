@@ -6,8 +6,8 @@ public class SwiftInterpreter {
 
     public void eval(String code) {
         String[] lines = code.split("\n"); // Split by newline for Swift-style statements
-        for (String line : lines) {
-            line = line.trim();
+        for (int i = 0; i < lines.length; i++) {
+            String line = lines[i].trim();
             if (line.isEmpty()) continue;
 
             // Handle variable assignment
@@ -17,6 +17,10 @@ public class SwiftInterpreter {
             // Handle print statements
             else if (line.startsWith("print")) {
                 handlePrint(line);
+            }
+            // Handle while loops
+            else if (line.startsWith("while")) {
+                i = handleWhile(lines, i);
             }
         }
     }
@@ -31,22 +35,26 @@ public class SwiftInterpreter {
         int value = evaluateExpression(expression);
         variables.put(varName, value); // Store the evaluated value
     }
-
     private int evaluateExpression(String expression) {
         // Remove spaces for ease of parsing
         expression = expression.replaceAll("\\s+", "");
-
-        // First, check for each operator in the order of precedence
+    
+        // First, check if the expression is a variable
+        if (variables.containsKey(expression)) {
+            return variables.get(expression); // Return the value of the variable
+        }
+    
+        // Check for each operator in the order of precedence
         String[] operators = {"\\+", "-", "\\*", "/", "%"};
         for (String operator : operators) {
             // Split by the operator
             String[] operands = expression.split(operator);
-
+    
             // If the split results in exactly two operands, evaluate the expression
             if (operands.length == 2) {
-                int left = Integer.parseInt(operands[0].trim());
-                int right = Integer.parseInt(operands[1].trim());
-
+                int left = evaluateExpression(operands[0].trim()); // Recursively evaluate left operand
+                int right = evaluateExpression(operands[1].trim()); // Recursively evaluate right operand
+    
                 switch (operator) {
                     case "\\+" -> {
                         return left + right;
@@ -66,10 +74,15 @@ public class SwiftInterpreter {
                 }
             }
         }
-
+    
         // If no operators were found, treat it as a direct integer
-        return Integer.parseInt(expression);
+        try {
+            return Integer.parseInt(expression); // If it's an integer, parse it
+        } catch (NumberFormatException e) {
+            throw new RuntimeException("Invalid expression: " + expression);
+        }
     }
+    
 
     private void handlePrint(String line) {
         // Extract the variable name from the print statement: print(sum)
@@ -82,21 +95,68 @@ public class SwiftInterpreter {
         }
     }
 
+    private int handleWhile(String[] lines, int currentIndex) {
+        String conditionLine = lines[currentIndex].trim();
+        String condition = conditionLine.substring(conditionLine.indexOf('(') + 1, conditionLine.indexOf(')')).trim();
+
+        // Extract the block of the while loop
+        int startBlockIndex = currentIndex + 1;
+        int endBlockIndex = startBlockIndex;
+
+        // Find the block enclosed by braces
+        while (endBlockIndex < lines.length && !lines[endBlockIndex].trim().equals("}")) {
+            endBlockIndex++;
+        }
+
+        // Check if block is valid
+        if (endBlockIndex >= lines.length) {
+            throw new RuntimeException("Missing closing brace for while loop");
+        }
+
+        // Execute the loop
+        while (evaluateCondition(condition)) {
+            for (int i = startBlockIndex; i < endBlockIndex; i++) {
+                eval(lines[i]);
+            }
+        }
+
+        return endBlockIndex; // Return the index after the closing brace
+    }
+
+    private boolean evaluateCondition(String condition) {
+        String[] operators = {"<=", ">=", "==", "!=", "<", ">"};
+        for (String operator : operators) {
+            if (condition.contains(operator)) {
+                String[] operands = condition.split(operator);
+                int left = evaluateExpression(operands[0]);
+                int right = evaluateExpression(operands[1]);
+
+                return switch (operator) {
+                    case "<=" -> left <= right;
+                    case ">=" -> left >= right;
+                    case "==" -> left == right;
+                    case "!=" -> left != right;
+                    case "<" -> left < right;
+                    case ">" -> left > right;
+                    default -> throw new RuntimeException("Invalid operator in condition: " + operator);
+                };
+            }
+        }
+        throw new RuntimeException("Invalid condition: " + condition);
+    }
+
     public static void main(String[] args) {
         SwiftInterpreter interpreter = new SwiftInterpreter();
-
-        // Example program:
+        
+        // Example program with while loop
         String program = """
-            let sum = 10 + 20
-            let product = 4 * 5
-            let difference = 15 - 5
-            let quotient = 20 / 4
-            let remainder = 10 % 3
+            let sum = 1
+            let i = 6
+            while (i > 0) {
+                let sum = sum * i
+                let i = i - 1
+            }
             print(sum)
-            print(product)
-            print(difference)
-            print(quotient)
-            print(remainder)
         """;
 
         interpreter.eval(program);
