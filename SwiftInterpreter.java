@@ -30,19 +30,30 @@ public class SwiftInterpreter {
             else if (line.startsWith("for")) {
                 i = handleForLoop(lines, i);
             }
+            else if (line.contains("=")) { // Handle reassignment (not starting with 'let')
+                handleAssignment(line);
+            }
         }
     }
 
     private void handleAssignment(String line) {
         // Handle assignment: let <var> = <expression>
         String[] parts = line.split("=");
-        String varName = parts[0].trim().substring(4).trim(); // Remove "let" keyword
+        String varName = ""; // Declare varName outside of the if-else block
+    
+        if (line.contains("let")) {
+            varName = parts[0].trim().substring(4).trim(); // Remove "let" keyword
+        } else {
+            varName = parts[0].trim();
+        }
+    
         String expression = parts[1].trim();
-
+    
         // Evaluate the expression
         int value = evaluateExpression(expression);
         variables.put(varName, value); // Store the evaluated value
     }
+    
 
     private int evaluateExpression(String expression) {
         // Remove spaces for ease of parsing
@@ -80,16 +91,25 @@ public class SwiftInterpreter {
     }
 
     private void handlePrint(String line) {
-        // Extract variable from print statement: print(sum)
-        String varName = line.substring(line.indexOf('(') + 1, line.indexOf(')')).trim();
-        Integer value = variables.get(varName);
-        if (value != null) {
-            System.out.println(value);
+        // Extract content inside the print statement: print(1) or print(sum)
+        String content = line.substring(line.indexOf('(') + 1, line.indexOf(')')).trim();
+    
+        // If the content is a variable, fetch it from the map
+        if (variables.containsKey(content)) {
+            System.out.println(variables.get(content));
         } else {
-            System.out.println("Variable not found: " + varName);
+            try {
+                // Try parsing the content as a number (literal value)
+                int value = Integer.parseInt(content);
+                System.out.println(value);
+            } catch (NumberFormatException e) {
+                // If it's neither a variable nor a valid number, print error
+                System.out.println("Variable or value not found: " + content);
+            }
         }
     }
-
+    
+    
     private int handleWhile(String[] lines, int currentIndex) {
         String conditionLine = lines[currentIndex].trim();
         String condition = conditionLine.substring(conditionLine.indexOf('(') + 1, conditionLine.indexOf(')')).trim();
@@ -140,63 +160,55 @@ public class SwiftInterpreter {
         throw new RuntimeException("Invalid condition: " + condition);
     }
 
- private int handleIfElse(String[] lines, int currentIndex) {
-    String conditionLine = lines[currentIndex].trim();
-    String condition = conditionLine.substring(conditionLine.indexOf('(') + 1, conditionLine.indexOf(')')).trim();
+    private int handleIfElse(String[] lines, int currentIndex) {
+        String conditionLine = lines[currentIndex].trim();
+        String condition = conditionLine.substring(conditionLine.indexOf('(') + 1, conditionLine.indexOf(')')).trim();
 
-    boolean conditionResult = evaluateCondition(condition);
+        boolean conditionResult = evaluateCondition(condition);
 
-    // Find the block of code for the if-else statement
-    int startBlockIndex = currentIndex + 1;
-    int endBlockIndex = findBlockEnd(lines, startBlockIndex);
+        // Find the block of code for the if-else statement
+        int startBlockIndex = currentIndex + 1;
+        int endBlockIndex = startBlockIndex;
 
-    if (conditionResult) {
-        // Execute the block of code under the 'if' part
-        for (int i = startBlockIndex; i < endBlockIndex; i++) {
-            eval(lines[i]);
+        // Find the start and end of the if block (if enclosed by braces)
+        while (endBlockIndex < lines.length && !lines[endBlockIndex].trim().equals("}")) {
+            endBlockIndex++;
         }
-        return endBlockIndex;
-    } else {
-        // Check for 'else if' or 'else' parts
-        int elseIndex = endBlockIndex + 1;
-        while (elseIndex < lines.length) {
-            String elseLine = lines[elseIndex].trim();
 
-            if (elseLine.startsWith("else if")) {
-                // Extract and evaluate the 'else if' condition
-                String elseIfCondition = elseLine.substring(elseLine.indexOf('(') + 1, elseLine.indexOf(')')).trim();
-                boolean elseIfResult = evaluateCondition(elseIfCondition);
+        // Check if the block is valid
+        if (endBlockIndex >= lines.length) {
+            throw new RuntimeException("Missing closing brace for if block");
+        }
 
-                if (elseIfResult) {
-                    // Execute the 'else if' block
-                    int elseIfStartBlockIndex = elseIndex + 1;
-                    int elseIfEndBlockIndex = findBlockEnd(lines, elseIfStartBlockIndex);
-                    for (int i = elseIfStartBlockIndex; i < elseIfEndBlockIndex; i++) {
-                        eval(lines[i]);
-                    }
-                    return elseIfEndBlockIndex;
+        // Execute the block based on the condition
+        if (conditionResult) {
+            // Execute the block of code under the 'if' part
+            for (int i = startBlockIndex; i < endBlockIndex; i++) {
+                eval(lines[i]);
+            }
+        } else {
+            // Check for 'else' part after the 'if' block
+            int elseBlockStart = endBlockIndex + 1;
+            if (elseBlockStart < lines.length && lines[elseBlockStart].trim().startsWith("else")) {
+                int elseStartBlockIndex = elseBlockStart + 1;
+                int elseEndBlockIndex = elseStartBlockIndex;
+
+                // Find the end of the else block
+                while (elseEndBlockIndex < lines.length && !lines[elseEndBlockIndex].trim().equals("}")) {
+                    elseEndBlockIndex++;
                 }
-                elseIndex = findBlockEnd(lines, elseIndex + 1) + 1; // Move to the next potential 'else if' or 'else'
-            } else if (elseLine.startsWith("else")) {
-                // Handle the 'else' block
-                int elseStartBlockIndex = elseIndex + 1;
-                int elseEndBlockIndex = findBlockEnd(lines, elseStartBlockIndex);
 
-                // Execute the 'else' block
+                // Execute the block of code under the 'else' part
                 for (int i = elseStartBlockIndex; i < elseEndBlockIndex; i++) {
                     eval(lines[i]);
                 }
-                return elseEndBlockIndex;
-            } else {
-                break; // No more 'else if' or 'else' parts
+
+                return elseEndBlockIndex; // Return the index after the else block
             }
         }
+
+        return endBlockIndex; // Return the index after the closing brace of the if block
     }
-
-    return endBlockIndex; // Return the index after the closing brace of the if block
-}
-
-
 
     private int handleForLoop(String[] lines, int currentIndex) {
         String line = lines[currentIndex].trim();
@@ -242,10 +254,22 @@ public class SwiftInterpreter {
 
         // Example program with if-else
         String program = """
-        let b = 10
-        let a = 20
-        let sum = a + b
-        print(sum)
+        let number = 121
+let originalNumber = number
+let reversedNumber = 0
+
+while (originalNumber != 0) {
+    let digit = originalNumber % 10
+    reversedNumber = reversedNumber * 10 + digit
+    originalNumber = originalNumber / 10
+}
+
+if (number == reversedNumber) {
+    print(1)
+} 
+else {
+    print(0)
+}
         """;
 
         interpreter.eval(program);
