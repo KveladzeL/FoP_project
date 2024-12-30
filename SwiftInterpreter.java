@@ -140,55 +140,63 @@ public class SwiftInterpreter {
         throw new RuntimeException("Invalid condition: " + condition);
     }
 
-    private int handleIfElse(String[] lines, int currentIndex) {
-        String conditionLine = lines[currentIndex].trim();
-        String condition = conditionLine.substring(conditionLine.indexOf('(') + 1, conditionLine.indexOf(')')).trim();
+   private int handleIfElse(String[] lines, int currentIndex) {
+    String conditionLine = lines[currentIndex].trim();
+    String condition = conditionLine.substring(conditionLine.indexOf('(') + 1, conditionLine.indexOf(')')).trim();
 
-        boolean conditionResult = evaluateCondition(condition);
+    boolean conditionResult = evaluateCondition(condition);
 
-        // Find the block of code for the if-else statement
-        int startBlockIndex = currentIndex + 1;
-        int endBlockIndex = startBlockIndex;
+    // Find the block of code for the if-else statement
+    int startBlockIndex = currentIndex + 1;
+    int endBlockIndex = findBlockEnd(lines, startBlockIndex);
 
-        // Find the start and end of the if block (if enclosed by braces)
-        while (endBlockIndex < lines.length && !lines[endBlockIndex].trim().equals("}")) {
-            endBlockIndex++;
+    if (conditionResult) {
+        // Execute the block of code under the 'if' part
+        for (int i = startBlockIndex; i < endBlockIndex; i++) {
+            eval(lines[i]);
         }
+        return endBlockIndex;
+    } else {
+        // Check for 'else if' or 'else' parts
+        int elseIndex = endBlockIndex + 1;
+        while (elseIndex < lines.length) {
+            String elseLine = lines[elseIndex].trim();
 
-        // Check if the block is valid
-        if (endBlockIndex >= lines.length) {
-            throw new RuntimeException("Missing closing brace for if block");
-        }
+            if (elseLine.startsWith("else if")) {
+                // Extract and evaluate the 'else if' condition
+                String elseIfCondition = elseLine.substring(elseLine.indexOf('(') + 1, elseLine.indexOf(')')).trim();
+                boolean elseIfResult = evaluateCondition(elseIfCondition);
 
-        // Execute the block based on the condition
-        if (conditionResult) {
-            // Execute the block of code under the 'if' part
-            for (int i = startBlockIndex; i < endBlockIndex; i++) {
-                eval(lines[i]);
-            }
-        } else {
-            // Check for 'else' part after the 'if' block
-            int elseBlockStart = endBlockIndex + 1;
-            if (elseBlockStart < lines.length && lines[elseBlockStart].trim().startsWith("else")) {
-                int elseStartBlockIndex = elseBlockStart + 1;
-                int elseEndBlockIndex = elseStartBlockIndex;
+                int elseIfStartBlockIndex = elseIndex + 1;
+                int elseIfEndBlockIndex = findBlockEnd(lines, elseIfStartBlockIndex);
 
-                // Find the end of the else block
-                while (elseEndBlockIndex < lines.length && !lines[elseEndBlockIndex].trim().equals("}")) {
-                    elseEndBlockIndex++;
+                if (elseIfResult) {
+                    // Execute the 'else if' block
+                    for (int i = elseIfStartBlockIndex; i < elseIfEndBlockIndex; i++) {
+                        eval(lines[i]);
+                    }
+                    return elseIfEndBlockIndex;
                 }
+                elseIndex = elseIfEndBlockIndex + 1; // Move to the next potential 'else if' or 'else'
+            } else if (elseLine.startsWith("else")) {
+                // Handle the 'else' block
+                int elseStartBlockIndex = elseIndex + 1;
+                int elseEndBlockIndex = findBlockEnd(lines, elseStartBlockIndex);
 
-                // Execute the block of code under the 'else' part
+                // Execute the 'else' block
                 for (int i = elseStartBlockIndex; i < elseEndBlockIndex; i++) {
                     eval(lines[i]);
                 }
-
-                return elseEndBlockIndex; // Return the index after the else block
+                return elseEndBlockIndex;
+            } else {
+                break;
             }
         }
-
-        return endBlockIndex; // Return the index after the closing brace of the if block
     }
+
+    return endBlockIndex; // Return the index after the closing brace of the if block
+}
+
 
     private int handleForLoop(String[] lines, int currentIndex) {
         String line = lines[currentIndex].trim();
