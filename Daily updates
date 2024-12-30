@@ -1,2 +1,23 @@
 For the first day we created 3 files: Main(ofc), Variables and Reader.
 we can now store our input into list of strings.
+
+
+As a group, we collectively decided to restart our programming project after evaluating our initial progress. 
+We recognized that certain aspects of the project—such as
+were not meeting our expectations or the project requirements.
+
+Restarting the project allowed us to reflect on our previous approach, identify areas for improvement, 
+and implement a more organized and effective plan. As a team, we have realigned our goals, restructured 
+the project’s design, and incorporated better practices, such as [mention specific improvements, e.g., clearer task delegation, 
+modular design, or rigorous testing].
+
+Although restarting required additional time and effort, we believe this decision will result 
+in a more cohesive and polished final product. Our team is now better organized and more confident in delivering a high-quality solution.
+
+We appreciate your understanding and guidance as we continue working on the project.
+
+
+
+Project is placed on second branch 
+Just opend the SwiftInterpreter.java file, copy its code and paste it to your programming environment.
+Everythin else is described in the code(example program, how methods work and etc.) with comments.
