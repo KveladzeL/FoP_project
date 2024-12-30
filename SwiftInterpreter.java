@@ -140,7 +140,7 @@ public class SwiftInterpreter {
         throw new RuntimeException("Invalid condition: " + condition);
     }
 
-   private int handleIfElse(String[] lines, int currentIndex) {
+ private int handleIfElse(String[] lines, int currentIndex) {
     String conditionLine = lines[currentIndex].trim();
     String condition = conditionLine.substring(conditionLine.indexOf('(') + 1, conditionLine.indexOf(')')).trim();
 
@@ -167,17 +167,16 @@ public class SwiftInterpreter {
                 String elseIfCondition = elseLine.substring(elseLine.indexOf('(') + 1, elseLine.indexOf(')')).trim();
                 boolean elseIfResult = evaluateCondition(elseIfCondition);
 
-                int elseIfStartBlockIndex = elseIndex + 1;
-                int elseIfEndBlockIndex = findBlockEnd(lines, elseIfStartBlockIndex);
-
                 if (elseIfResult) {
                     // Execute the 'else if' block
+                    int elseIfStartBlockIndex = elseIndex + 1;
+                    int elseIfEndBlockIndex = findBlockEnd(lines, elseIfStartBlockIndex);
                     for (int i = elseIfStartBlockIndex; i < elseIfEndBlockIndex; i++) {
                         eval(lines[i]);
                     }
                     return elseIfEndBlockIndex;
                 }
-                elseIndex = elseIfEndBlockIndex + 1; // Move to the next potential 'else if' or 'else'
+                elseIndex = findBlockEnd(lines, elseIndex + 1) + 1; // Move to the next potential 'else if' or 'else'
             } else if (elseLine.startsWith("else")) {
                 // Handle the 'else' block
                 int elseStartBlockIndex = elseIndex + 1;
@@ -189,13 +188,14 @@ public class SwiftInterpreter {
                 }
                 return elseEndBlockIndex;
             } else {
-                break;
+                break; // No more 'else if' or 'else' parts
             }
         }
     }
 
     return endBlockIndex; // Return the index after the closing brace of the if block
 }
+
 
 
     private int handleForLoop(String[] lines, int currentIndex) {
