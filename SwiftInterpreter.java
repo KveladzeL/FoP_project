@@ -163,53 +163,68 @@ public class SwiftInterpreter {
     private int handleIfElse(String[] lines, int currentIndex) {
         String conditionLine = lines[currentIndex].trim();
         String condition = conditionLine.substring(conditionLine.indexOf('(') + 1, conditionLine.indexOf(')')).trim();
-
+    
         boolean conditionResult = evaluateCondition(condition);
-
+    
         // Find the block of code for the if-else statement
         int startBlockIndex = currentIndex + 1;
         int endBlockIndex = startBlockIndex;
-
+    
         // Find the start and end of the if block (if enclosed by braces)
         while (endBlockIndex < lines.length && !lines[endBlockIndex].trim().equals("}")) {
             endBlockIndex++;
         }
-
+    
         // Check if the block is valid
         if (endBlockIndex >= lines.length) {
             throw new RuntimeException("Missing closing brace for if block");
         }
-
-        // Execute the block based on the condition
+    
         if (conditionResult) {
             // Execute the block of code under the 'if' part
             for (int i = startBlockIndex; i < endBlockIndex; i++) {
                 eval(lines[i]);
             }
+    
+            // Skip over the 'else' block, if it exists
+            if (endBlockIndex + 1 < lines.length && lines[endBlockIndex + 1].trim().startsWith("else")) {
+                int elseStartBlockIndex = endBlockIndex + 2;
+                int elseEndBlockIndex = findBlockEnd(lines, elseStartBlockIndex);
+                return elseEndBlockIndex; // Skip the else block
+            }
         } else {
-            // Check for 'else' part after the 'if' block
-            int elseBlockStart = endBlockIndex + 1;
-            if (elseBlockStart < lines.length && lines[elseBlockStart].trim().startsWith("else")) {
-                int elseStartBlockIndex = elseBlockStart + 1;
-                int elseEndBlockIndex = elseStartBlockIndex;
-
-                // Find the end of the else block
-                while (elseEndBlockIndex < lines.length && !lines[elseEndBlockIndex].trim().equals("}")) {
-                    elseEndBlockIndex++;
+            // Find the 'else' statement, if it exists
+            int elseStartLine = endBlockIndex + 1;
+        
+            // Skip blank lines or comments to find the actual 'else' keyword
+            while (elseStartLine < lines.length && lines[elseStartLine].trim().isEmpty()) {
+                elseStartLine++;
+            }
+        
+            // Check if the next non-empty line starts with 'else'
+            if (elseStartLine < lines.length && lines[elseStartLine].trim().startsWith("else")) {
+                // Check if 'else' is followed by a block or a single statement
+                int elseBlockStart = elseStartLine + 1; // Next line after 'else'
+                if (lines[elseStartLine].trim().endsWith("{")) {
+                    // Block starts on the same line as 'else'
+                    elseBlockStart = elseStartLine;
                 }
-
-                // Execute the block of code under the 'else' part
-                for (int i = elseStartBlockIndex; i < elseEndBlockIndex; i++) {
+        
+                // Find the end of the 'else' block
+                int elseEndBlockIndex = findBlockEnd(lines, elseBlockStart);
+        
+                // Execute the 'else' block
+                for (int i = elseBlockStart; i < elseEndBlockIndex; i++) {
                     eval(lines[i]);
                 }
-
-                return elseEndBlockIndex; // Return the index after the else block
+        
+                return elseEndBlockIndex; // Return the index after the 'else' block
             }
         }
-
+        
         return endBlockIndex; // Return the index after the closing brace of the if block
     }
-
+    
     private int handleForLoop(String[] lines, int currentIndex) {
         String line = lines[currentIndex].trim();
         String[] parts = line.substring(4).split("in");
@@ -265,7 +280,8 @@ while (originalNumber != 0) {
 }
 
 if (number == reversedNumber) {
-    print(1)
+    print(1) 
+    print(reversedNumber)
 } 
 else {
     print(0)
