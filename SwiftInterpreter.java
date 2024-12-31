@@ -278,33 +278,26 @@ public class SwiftInterpreter {
             throw new RuntimeException("Invalid range format: " + rangeStr);
         }
     
-        // Parse the range values
-        int start;
-        int end;
-        try {
-            start = Integer.parseInt(range[0].trim());
-            end = Integer.parseInt(range[1].trim());
-        } catch (NumberFormatException e) {
-            throw new RuntimeException("Invalid numeric values in range: " + rangeStr);
-        }
-        
+        // Evaluate the range values dynamically (supports variables or literals)
+        int start = evaluateExpression(range[0].trim());
+        int end = evaluateExpression(range[1].trim());
+    
         // Locate the start and end of the loop block
         int startBlockIndex = currentIndex + 1; // Start after the 'for' line
-        int endBlockIndex = findForBlockEnd(lines, startBlockIndex); // Locate closing brace '}'
+        int endBlockIndex = findBlockEnd(lines, startBlockIndex); // Locate closing brace '}'
     
         // Execute the loop
-        int i = start; // Initialize the loop variable
-        while (i <= end) { // Use a while loop instead of for
+        for (int i = start; i <= end; i++) { // Use a standard for loop
             variables.put(loopVar, i); // Update the loop variable in the map
             // Iterate over the loop block
             for (int j = startBlockIndex; j < endBlockIndex + 1; j++) {
                 eval(lines[j]); // Evaluate each line in the loop block
             }
-            i++; // Increment the loop variable
         }
     
         return endBlockIndex; // Return the index after the loop block
     }
+    
     
     private int findBlockEnd(String[] lines, int startIndex) {
         int braceCount = 0;
@@ -345,13 +338,10 @@ public class SwiftInterpreter {
 
         // Example program with if-else
         String program = """
-            let sum = 0
-            let n = 10
-            while(n > 0) {
-            sum += n
-            n -= 1
+        let n = 5
+            for i in 1...n{
+            print (i)
             }
-            print(sum)
         """;
 
         interpreter.eval(program);
