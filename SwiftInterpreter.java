@@ -227,32 +227,51 @@ public class SwiftInterpreter {
     
     private int handleForLoop(String[] lines, int currentIndex) {
         String line = lines[currentIndex].trim();
-        String[] parts = line.substring(4).split("in");
-        String loopVar = parts[0].trim();
-        String rangeStr = parts[1].trim();
-
-        // Ensure range is properly parsed
-        String[] range = rangeStr.replace("{", "").trim().split("\\.\\.\\.");
+        String[] parts = line.substring(4).split("in"); // Split 'for <var> in <range>'
+        
+        if (parts.length != 2) {
+            throw new RuntimeException("Invalid for loop format: " + line);
+        }
+    
+        String loopVar = parts[0].trim(); // Extract loop variable
+        String rangeStr = parts[1].trim(); // Extract range
+    
+        // Clean up and validate range string
+        rangeStr = rangeStr.replace("{", "").replace("}", "").trim();
+        String[] range = rangeStr.split("\\.\\.\\.");
+        
         if (range.length != 2) {
             throw new RuntimeException("Invalid range format: " + rangeStr);
         }
-
-        int start = Integer.parseInt(range[0].trim());
-        int end = Integer.parseInt(range[1].trim());
-
-        int startBlockIndex = currentIndex + 1;
-        int endBlockIndex = findBlockEnd(lines, startBlockIndex);
-
-        for (int i = start; i <= end; i++) {
-            variables.put(loopVar, i);
-            for (int j = startBlockIndex; j < endBlockIndex; j++) {
-                eval(lines[j]);
-            }
+    
+        // Parse the range values
+        int start;
+        int end;
+        try {
+            start = Integer.parseInt(range[0].trim());
+            end = Integer.parseInt(range[1].trim());
+        } catch (NumberFormatException e) {
+            throw new RuntimeException("Invalid numeric values in range: " + rangeStr);
         }
-
-        return endBlockIndex;
+        
+        // Locate the start and end of the loop block
+        int startBlockIndex = currentIndex + 1; // Start after the 'for' line
+        int endBlockIndex = findForBlockEnd(lines, startBlockIndex); // Locate closing brace '}'
+    
+        // Execute the loop
+        int i = start; // Initialize the loop variable
+        while (i <= end) { // Use a while loop instead of for
+            variables.put(loopVar, i); // Update the loop variable in the map
+            // Iterate over the loop block
+            for (int j = startBlockIndex; j < endBlockIndex + 1; j++) {
+                eval(lines[j]); // Evaluate each line in the loop block
+            }
+            i++; // Increment the loop variable
+        }
+    
+        return endBlockIndex; // Return the index after the loop block
     }
-
+    
     private int findBlockEnd(String[] lines, int startIndex) {
         int braceCount = 0;
         for (int i = startIndex; i < lines.length; i++) {
@@ -263,29 +282,42 @@ public class SwiftInterpreter {
         }
         throw new RuntimeException("Missing closing brace");
     }
+    private int findForBlockEnd(String[] lines, int startBlockIndex) {
+        int openBraces = 0;
+    
+        for (int i = startBlockIndex; i < lines.length; i++) {
+            String trimmedLine = lines[i].trim();
+    
+            // Count opening and closing braces
+            if (trimmedLine.contains("{")) {
+                openBraces++;
+            }
+            if (trimmedLine.contains("}")) {
+                openBraces--;
+            }
+    
+            // If all opened braces are closed, the block ends here
+            if (openBraces == 0) {
+                return i + 1; // Return the line after the closing '}'
+            }
+        }
+    
+        throw new RuntimeException("Block end not found. Missing closing brace.");
+    }
+    
 
     public static void main(String[] args) {
         SwiftInterpreter interpreter = new SwiftInterpreter();
 
         // Example program with if-else
         String program = """
-        let number = 121
-let originalNumber = number
-let reversedNumber = 0
-
-while (originalNumber != 0) {
-    let digit = originalNumber % 10
-    reversedNumber = reversedNumber * 10 + digit
-    originalNumber = originalNumber / 10
-}
-
-if (number == reversedNumber) {
-    print(1) 
-    print(reversedNumber)
-} 
-else {
-    print(0)
-}
+            let sum = 0
+            let n = 10
+            while(n > 0) {
+            sum = sum + n
+            n = n - 1
+            }
+            print(sum)
         """;
 
         interpreter.eval(program);
