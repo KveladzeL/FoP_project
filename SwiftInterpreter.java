@@ -11,7 +11,7 @@ public class SwiftInterpreter {
             if (line.isEmpty()) continue;
 
             // Handle variable assignment
-            if (line.startsWith("let")) {
+            if (line.startsWith("let") || line.startsWith("var")) {
                 handleAssignment(line);
             }
             // Handle print statements
@@ -76,7 +76,7 @@ public class SwiftInterpreter {
         String[] parts = line.split("=");
         String varName;
         
-        if (line.contains("let")) {
+        if (line.contains("let") || line.contains("var")) {
             varName = parts[0].trim().substring(4).trim(); // Remove "let" keyword
         } else {
             varName = parts[0].trim();
@@ -338,10 +338,19 @@ public class SwiftInterpreter {
 
         // Example program with if-else
         String program = """
-        let n = 5
-            for i in 1...n{
-            print (i)
-            }
+        let n = 10
+        var a = 0
+        var b = 1
+        var count = 2
+
+    while (count <= n) {
+        let temp = a + b
+        a = b
+        b = temp
+        count += 1
+    }
+    print(b)
+}
         """;
 
         interpreter.eval(program);
