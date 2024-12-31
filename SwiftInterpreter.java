@@ -37,10 +37,45 @@ public class SwiftInterpreter {
     }
 
     private void handleAssignment(String line) {
-        // Handle assignment: let <var> = <expression>
-        String[] parts = line.split("=");
-        String varName = ""; // Declare varName outside of the if-else block
+        // Handle assignment or compound assignment
+        String[] compoundOperators = {"+=", "-=", "*=", "/=", "%="};
+        
+        // Check for compound operators first
+        for (String operator : compoundOperators) {
+            if (line.contains(operator)) {
+                String[] parts = line.split("\\" + operator);
+                if (parts.length == 2) {
+                    String varName = parts[0].trim();
+                    String rightExpr = parts[1].trim();
     
+                    if (!variables.containsKey(varName)) {
+                        throw new RuntimeException("Variable not defined: " + varName);
+                    }
+    
+                    // Evaluate the right-hand side expression
+                    int rightValue = evaluateExpression(rightExpr);
+                    int currentValue = variables.get(varName);
+    
+                    // Perform the operation and update the variable
+                    int newValue = switch (operator) {
+                        case "+=" -> currentValue + rightValue;
+                        case "-=" -> currentValue - rightValue;
+                        case "*=" -> currentValue * rightValue;
+                        case "/=" -> currentValue / rightValue;
+                        case "%=" -> currentValue % rightValue;
+                        default -> throw new RuntimeException("Unsupported operator: " + operator);
+                    };
+    
+                    variables.put(varName, newValue);
+                    return; // Exit after handling the compound assignment
+                }
+            }
+        }
+    
+        // If not a compound operator, handle standard assignment
+        String[] parts = line.split("=");
+        String varName;
+        
         if (line.contains("let")) {
             varName = parts[0].trim().substring(4).trim(); // Remove "let" keyword
         } else {
@@ -48,11 +83,10 @@ public class SwiftInterpreter {
         }
     
         String expression = parts[1].trim();
-    
-        // Evaluate the expression
         int value = evaluateExpression(expression);
         variables.put(varName, value); // Store the evaluated value
     }
+    
     
 
     private int evaluateExpression(String expression) {
@@ -314,8 +348,8 @@ public class SwiftInterpreter {
             let sum = 0
             let n = 10
             while(n > 0) {
-            sum = sum + n
-            n = n - 1
+            sum += n
+            n -= 1
             }
             print(sum)
         """;
