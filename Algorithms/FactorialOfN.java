@@ -311,14 +311,12 @@ public class FactorialOfN {
         FactorialOfN interpreter = new FactorialOfN();
 
         String program = """
-            let n = 5
-            let result = 1
-            let i = 1
-            while (i <= n) {
-                result *= i
-                i = i + 1
-            }
-            print(result)
+            let n = 5    
+    	    let result = 1
+    	    for i in 1...n {
+       	        result *= i
+    	    }
+    	    print (result)
         """;
 
         interpreter.eval(program);
