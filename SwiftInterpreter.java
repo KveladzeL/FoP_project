@@ -309,29 +309,6 @@ public class SwiftInterpreter {
         }
         throw new RuntimeException("Missing closing brace");
     }
-    private int findForBlockEnd(String[] lines, int startBlockIndex) {
-        int openBraces = 0;
-    
-        for (int i = startBlockIndex; i < lines.length; i++) {
-            String trimmedLine = lines[i].trim();
-    
-            // Count opening and closing braces
-            if (trimmedLine.contains("{")) {
-                openBraces++;
-            }
-            if (trimmedLine.contains("}")) {
-                openBraces--;
-            }
-    
-            // If all opened braces are closed, the block ends here
-            if (openBraces == 0) {
-                return i + 1; // Return the line after the closing '}'
-            }
-        }
-    
-        throw new RuntimeException("Block end not found. Missing closing brace.");
-    }
-    
 
     public static void main(String[] args) {
         SwiftInterpreter interpreter = new SwiftInterpreter();
